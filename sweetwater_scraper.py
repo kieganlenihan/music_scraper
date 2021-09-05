@@ -12,12 +12,13 @@ wall_explicit_wait_time = 2
 button_hold_time = 8
 
 class music_scraper:
-    def __init__(self, driver_path, url_base, out_image_folder, instrument_type):
+    def __init__(self, driver_path, url_base, out_image_folder, instrument_type = None):
         self.start_t = time.time()
         self.chrome = webdriver.Chrome(executable_path = driver_path)
         self.url = url_base
-        self.out_f = out_image_folder + "%s/" % instrument_type
-        out_log = os.path.join("%slog_%s" % (self.out_f, instrument_type))
+        if instrument_type is not None:
+            self.out_f = out_image_folder + instrument_type
+            out_log = os.path.join("%slog_%s" % (self.out_f, instrument_type))
         self.log_f = open(out_log, "w")
         self.item_counter = 1
         self.variant_counter = 0
