@@ -1,10 +1,8 @@
-from numpy.core.fromnumeric import prod
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains as AC
-from selenium.webdriver.chrome.options import Options
 import requests
 import os
 import time
@@ -14,12 +12,9 @@ wall_explicit_wait_time = 2
 button_hold_time = 8
 
 class music_scraper:
-    def __init__(self, driver_path, url_base, out_image_folder, instrument_type, suppress_browser = True):
+    def __init__(self, driver_path, url_base, out_image_folder, instrument_type):
         self.start_t = time.time()
-        options = Options()
-        if suppress_browser:
-            options.add_argument("--headless")
-        self.chrome = webdriver.Chrome(executable_path = driver_path, chrome_options = options)
+        self.chrome = webdriver.Chrome(executable_path = driver_path)
         self.url = url_base
         self.out_f = out_image_folder + "%s/" % instrument_type
         out_log = os.path.join("%slog_%s" % (self.out_f, instrument_type))
@@ -94,30 +89,11 @@ class music_scraper:
         self.log_progress("%d    %s" % (self.item_counter, prod_name))
         self.item_counter += 1
         return prod_name
-    def go_to_variant_product_page(self, link):
-        self.chrome.execute_script("window.open('%s')" % link)
-        new_window = self.chrome.window_handles[2]
-        self.chrome.switch_to.window(new_window)
-        self.pass_block_wall()
-        img_link = self.get_media_link()
-        prod_name = self.get_product_name()
-        self.variant_counter += 1
-        self.save_image(img_link, prod_name)
-    def find_product_variants(self):
-        current_window = self.chrome.window_handles[1]
-        variants = self.chrome.find_elements_by_class_name("product-property-gallery__variant")
-        if variants:
-            for variant in variants:
-                link = self.find_store_item(variant)
-                self.go_to_variant_product_page(link)
-                self.return_to_prev_window(current_window)
     def go_to_product_page(self, link):
         self.chrome.execute_script("window.open('%s', 'new window')" % link)
         new_window = self.chrome.window_handles[1]
         self.chrome.switch_to.window(new_window)
         self.pass_block_wall()
-        # self.find_product_variants()
-        # The above line is deprecated because sweetwater lists all variants in the home page
         img_link = self.get_media_link()
         prod_name = self.get_product_name()
         self.save_image(img_link, prod_name)
@@ -151,18 +127,3 @@ class music_scraper:
             self.log_progress("    Total time to complete scrape: %f" % (time.time() - self.start_t))
             self.log_f.close()
         self.chrome.close()
-    
-if __name__ == "__main__":
-    driver_exec = "/home/kiegan/Documents/GANs/Utilities/chromedriver"
-    out_path = "/home/kiegan/Documents/Datasets/Images/Guitars/"
-    
-    scrape_url = "https://www.sweetwater.com/c591--Hollowbody_Guitars"
-    instrument_type = "Hollow-body"
-    ms = music_scraper(driver_exec, scrape_url, out_path, instrument_type)
-    ms.scrape()
-
-    urls = ["https://www.sweetwater.com/c1109--Baritone_Guitars", "https://www.sweetwater.com/c1115--7_string_Guitars", "https://www.sweetwater.com/c1116--8_string_Guitars", "https://www.sweetwater.com/c595--Left_handed_Electric_Guitars"]
-    instrument_type = "Solid-body"
-    for scrape_url in urls:
-        ms = music_scraper(driver_exec, scrape_url, out_path, instrument_type)
-        ms.scrape()
