@@ -90,12 +90,19 @@ class music_scraper:
         self.log_progress("%d    %s" % (self.item_counter, prod_name))
         self.item_counter += 1
         return prod_name
+    def get_second_image_media_link(self):
+        WebDriverWait(self.chrome, media_explicit_wait_time).until(EC.presence_of_element_located((By.XPATH, '//*[@id="store-detail"]/div[1]/section[1]/div/nav/div/div[2]')))
+        next_img_button = self.chrome.find_element_by_xpath('//*[@id="store-detail"]/div[1]/section[1]/div/nav/div/div[2]')
+        next_img_button.click()
+        return self.get_media_link()
     def go_to_product_page(self, link):
         self.chrome.execute_script("window.open('%s', 'new window')" % link)
         new_window = self.chrome.window_handles[1]
         self.chrome.switch_to.window(new_window)
         self.pass_block_wall()
         img_link = self.get_media_link()
+        if "angle" in img_link:
+            img_link = self.get_second_image_media_link()
         prod_name = self.get_product_name()
         self.save_image(img_link, prod_name)
         self.guitar_counter += 1
@@ -127,4 +134,5 @@ class music_scraper:
             self.log_progress("    Block walls passed: %d" % self.block_passes)
             self.log_progress("    Total time to complete scrape: %f" % (time.time() - self.start_t))
             self.log_f.close()
+        self.chrome.close()
         self.chrome.close()
