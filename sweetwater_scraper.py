@@ -7,18 +7,17 @@ import requests
 import os
 import time
 
-media_explicit_wait_time = 5
+media_explicit_wait_time = 30
 wall_explicit_wait_time = 2
 button_hold_time = 8
 
 class music_scraper:
-    def __init__(self, driver_path, url_base, out_image_folder, instrument_type = None):
+    def __init__(self, driver_path, out_image_folder, instrument_type = None):
         self.start_t = time.time()
         self.chrome = webdriver.Chrome(executable_path = driver_path)
-        self.url = url_base
         if instrument_type is not None:
             self.out_f = out_image_folder + instrument_type
-            out_log = os.path.join("%slog_%s" % (self.out_f, instrument_type))
+            out_log = os.path.join("%s/log_%s" % (self.out_f, instrument_type))
         self.log_f = open(out_log, "w")
         self.item_counter = 1
         self.variant_counter = 0
@@ -94,6 +93,7 @@ class music_scraper:
         WebDriverWait(self.chrome, media_explicit_wait_time).until(EC.presence_of_element_located((By.XPATH, '//*[@id="store-detail"]/div[1]/section[1]/div/nav/div/div[2]')))
         next_img_button = self.chrome.find_element_by_xpath('//*[@id="store-detail"]/div[1]/section[1]/div/nav/div/div[2]')
         next_img_button.click()
+        self.pass_block_wall()
         return self.get_media_link()
     def go_to_product_page(self, link):
         self.chrome.execute_script("window.open('%s', 'new window')" % link)
@@ -112,27 +112,28 @@ class music_scraper:
             link = self.find_store_item(element)
             self.go_to_product_page(link)
             self.return_to_prev_window(self.main_window)
-    def scrape(self):
-        self.go_to_link(self.url)
+    def scrape(self, url):
+        self.go_to_link(url)
         self.main_window = self.chrome.window_handles[0]
         self.pass_block_wall()
-        try:
-            while True:
-                WebDriverWait(self.chrome, media_explicit_wait_time).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "product-card__name")))
-                self.parse_products_on_page()
+        while True:
+            WebDriverWait(self.chrome, media_explicit_wait_time).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "product-card__name")))
+            self.parse_products_on_page()
+            try:
                 WebDriverWait(self.chrome, media_explicit_wait_time).until(EC.presence_of_element_located((By.CLASS_NAME, "next")))
                 next_button = self.chrome.find_element_by_class_name("next")
                 next_button.click()
-                self.pass_block_wall()
-                self.page_counter += 1
-        except:
-            self.log_progress("Finished parsing\nDisplaying output information:")
-            self.log_progress("    Pictures saved: %d" % self.item_counter)
-            self.log_progress("    Variants found: %d" % self.variant_counter)
-            self.log_progress("    Guitars found: %d" % self.guitar_counter)
-            self.log_progress("    Pages passed: %d\n" % self.page_counter)
-            self.log_progress("    Block walls passed: %d" % self.block_passes)
-            self.log_progress("    Total time to complete scrape: %f" % (time.time() - self.start_t))
-            self.log_f.close()
-        self.chrome.close()
+            except:
+                self.log_progress("Next button not found, ending process")
+                break
+            self.pass_block_wall()
+            self.page_counter += 1
+        self.log_progress("Finished parsing\nDisplaying output information:")
+        self.log_progress("    Pictures saved: %d" % self.item_counter)
+        self.log_progress("    Variants found: %d" % self.variant_counter)
+        self.log_progress("    Guitars found: %d" % self.guitar_counter)
+        self.log_progress("    Pages passed: %d\n" % self.page_counter)
+        self.log_progress("    Block walls passed: %d" % self.block_passes)
+        self.log_progress("    Total time to complete scrape: %f" % (time.time() - self.start_t))
+        self.log_f.close()
         self.chrome.close()
